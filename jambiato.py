@@ -351,9 +351,9 @@ def run():
             unrecognized.append(t)
 
     # Check for missing tags
-    for t in db[latest]:
+    for t in db[version]:
         matches = list(filter(lambda x: t["index"] == x[3], tags))
-        if len(matches) > 0:
+        if len(matches) == 0:
             missing.append(t)
 
     if len(missing) == 0 and len(outdated) == 0 and len(unrecognized) == 0:
