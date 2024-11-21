@@ -339,16 +339,24 @@ def run():
     outdated = []
     missing = []
     unrecognized = []
+    
+    implemented_versions = {}
 
     for t in tags:
         (file, line, version, index) = t
 
         if version != latest:
             outdated.append(t)
+            
+        if version not in implemented_versions:
+            implemented_versions[version] = 0
+        implemented_versions[version] += 1
 
         matches = list(filter(lambda x: x["index"] == index, db[version]))
         if len(matches) == 0:
             unrecognized.append(t)
+            
+    version = max(implemented_versions, key=implemented_versions.get)
 
     # Check for missing tags
     for t in db[version]:
@@ -363,10 +371,12 @@ def run():
     outdated.sort(key=lambda x: x[3])
     unrecognized.sort(key=lambda x: x[3])
 
+    print()
     print(f"There are {len(missing)} missing definitions:")
     for t in missing:
         print("\t", t["index"], t["label"])
 
+    print()
     print(f"There are {len(outdated)} outdated tags (latest is: {latest})")
     for t in outdated:
         (file, line, version, index) = t
@@ -385,11 +395,16 @@ def run():
         
         print("\t", t)
 
+    print()
     print(f"There are {len(unrecognized)} unrecognized tags:")
     for t in unrecognized:
         (file, line, version, index) = t
         print("\t", t)
 
+    print()
+    print(f'The majority of equations implements version {version}; this is the version distribution:')
+    print('\n'.join(map(lambda x: f'\t{x[0]}: {x[1]}', implemented_versions.items())))
+    print()
 
 if __name__ == "__main__":
     run()
