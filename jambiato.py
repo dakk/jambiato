@@ -19,15 +19,16 @@ import shutil
 import subprocess
 import requests
 import tarfile
-from string import ascii_uppercase
 import json
+
+from string import ascii_uppercase
+from typing import List
 
 from TexSoup import TexSoup
 
 REPO_URL = "gavofyork/graypaper"
 META_DIR = "./paper_metadata/"
 MIN_VER = "0.4.0"
-
 
 
 def extract_sections_and_formulas(tex_soup, section_div):
@@ -42,27 +43,76 @@ def extract_sections_and_formulas(tex_soup, section_div):
             return ascii_uppercase[counter - 1]
         return str(counter)
 
-    def process_equation(eq, section_num):
+    def process_equation(eq, section_num) -> List:
         nonlocal formula_counter
+
+        if str(eq.name) == "align" and len(str(eq).split("\\\\")) > 1:
+            eqs = []
+            i = 0
+            data = str(eq).split("\\\\")
+            x = data[i]
+
+            # Handle the case where the first line contains a nonumber
+            if x.find("\\nonumber") != -1:
+                i += 1
+                x = data[i]
+
+            while i < len(data):
+                if (
+                    (x.count("\\begin{cases}") != x.count("\\end{cases}"))
+                    or (x.count("\\begin{rcases}") != x.count("\\end{rcases}"))
+                    or (x.count("\\begin{aligned}") != x.count("\\end{aligned}"))
+                    or (x.count("\\begin{align*}") != x.count("\\end{align*}"))
+                ):
+                    i += 1
+                    x += data[i]
+                    continue
+
+                if (i + 1) < len(data) and data[i + 1].find("\\nonumber") != -1:
+                    i += 1
+                    x += data[i]
+                    continue
+
+                if section_div:
+                    formula_idx = f"{section_num}.{formula_counter}"
+                else:
+                    formula_idx = f"{formula_counter}"
+
+                label = None 
+                if x.find('\\label{') != -1:
+                    label = x.split("\\label{")[1].split("}")[0]
+                    
+                eqs.append(["formula", label, formula_idx, x])
+                formula_counter += 1
+                i += 1
+                if i < len(data):
+                    x = data[i]
+
+            return eqs
+
         label = None
 
+        # Get the raw LaTeX code
+        formula_tex = str(eq)
+        
         # Try to find label in the equation
         labels = eq.find_all("label")
         if labels:
             label = str(labels[0].string)
 
-        # Get the raw LaTeX code
-        formula_tex = str(eq)
+        if label is None and formula_tex.find('\\label{') != -1:
+            label = x.split("\\label{")[1].split("}")[0]
+
 
         # Create formula index
         if section_div:
             formula_idx = f"{section_num}.{formula_counter}"
         else:
             formula_idx = f"{formula_counter}"
-            
+
         formula_counter += 1
 
-        return ["formula", label, formula_idx, formula_tex]
+        return [["formula", label, formula_idx, formula_tex]]
 
     def process_node(node):
         nonlocal current_section, section_counter, is_appendix, formula_counter
@@ -90,46 +140,15 @@ def extract_sections_and_formulas(tex_soup, section_div):
 
             result.append(["section", None, section_num, section_title])
             section_counter += 1
-            
+
             # Reset formula counter for new section
             if section_div:
                 formula_counter = 1
 
         # Process equations
-        elif str(node.name) in ["equation", "align", "gather", "align*"]:
+        elif str(node.name) in ["equation", "align", "gather"]:
             if current_section:  # Only process if we're in a section
-                if len(node.find_all('aligned')) > 1:
-                    nrs = []
-                    for child in node.contents:
-                        if hasattr(child, "name") and str(child.name) == 'aligned':
-                            nrs.append(process_equation(child, current_section))
-                    result.extend(nrs)
-                
-                elif str(node.name) == 'align' and len(str(node).split('\\\\')) > 1:
-                    i = 0
-                    data = str(node).split('\\\\')
-                    x = data[i]
-                    
-                    while i < len(data):
-                        if x.find ("\\begin{cases}") != -1 and x.find('\\end{cases}') == -1:
-                            i += 1
-                            x += data[i]
-                            continue
-                            
-                        if section_div:
-                            formula_idx = f"{section_num}.{formula_counter}"
-                        else:
-                            formula_idx = f"{formula_counter}"
-                            
-                        result.append(['formula', None, formula_idx, x])
-                        formula_counter += 1
-                        i += 1
-                        if i < len(data):
-                            x = data[i]
-
-                else:
-                    result.append(process_equation(node, current_section))
-                
+                result.extend(process_equation(node, current_section))
             else:
                 raise Exception("Formula outside section")
 
@@ -180,21 +199,20 @@ def extract_formulas_soup(gp_dir, tex_file, tex_files, section_div):
     res = extract_sections_and_formulas(soup, section_div)
     formulas = {}
     for x in res:
-        if x[0] != 'formula':
-            continue 
-        
+        if x[0] != "formula":
+            continue
+
         label, formula_idx, formula_tex = x[1:]
-        print(formula_idx)
+        print(formula_idx, '\t\t', label)
         formulas[formula_idx] = {
-            'label': label,
-            'index': formula_idx,
-            'tex': formula_tex
+            "label": label,
+            "index": formula_idx,
+            "tex": formula_tex,
         }
-        
-    print (f"Extracted {len(formulas)} formulas")
+
+    print(f"Extracted {len(formulas)} formulas")
 
     return formulas
-
 
 
 def download_file(url, local_path):
@@ -246,10 +264,12 @@ def download_releases(local_dir):
                 os.listdir(os.path.join(gp_dir, "text")),
             )
         )
-        formulas = extract_formulas_soup(gp_dir, tex_file, tex_files, section_div=int(release["tag_name"][1]) > 4)
+        formulas = extract_formulas_soup(
+            gp_dir, tex_file, tex_files, section_div=int(release["tag_name"][3]) > 4
+        )
 
         f = open(release_dir + ".json", "w")
-        f.write(json.dumps(list(formulas.values()), separators=(',\n', ': ')))
+        f.write(json.dumps(list(formulas.values()), separators=(",\n", ": ")))
         f.close()
 
         shutil.rmtree(release_dir)
@@ -326,13 +346,13 @@ def run():
         if version != latest:
             outdated.append(t)
 
-        matches = list(filter(lambda x: x["index"].find(index) != -1, db[version]))
+        matches = list(filter(lambda x: x["index"] == index, db[version]))
         if len(matches) == 0:
             unrecognized.append(t)
 
     # Check for missing tags
     for t in db[latest]:
-        matches = list(filter(lambda x: t["index"].find(x[3]) != -1, tags))
+        matches = list(filter(lambda x: t["index"] == x[3], tags))
         if len(matches) > 0:
             missing.append(t)
 
@@ -350,6 +370,17 @@ def run():
     print(f"There are {len(outdated)} outdated tags (latest is: {latest})")
     for t in outdated:
         (file, line, version, index) = t
+        
+        matches = list(filter(lambda x: x['index'] == index, db[version]))
+        if len(matches) > 0 and matches[0]['label'] is not None:
+            label = matches[0]['label']
+            matches_latest = list(filter(lambda x: x['label'] == label, db[latest]))
+            if len(matches_latest) > 0:
+                if index != matches_latest[0]['index']:
+                    t += (f"{label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}", )
+                if matches_latest[0]['tex'] != matches[0]['tex']:
+                    t += (f'Equation content changed between versions',)
+        
         print("\t", t)
 
     print(f"There are {len(unrecognized)} unrecognized tags:")
