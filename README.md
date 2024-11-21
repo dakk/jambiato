@@ -1,5 +1,6 @@
 # Jambiato
 
+Checker for tracking graypaper equations' modifications.
 Brought to you by Davide Gessa (dakk), developer of JamPy.
 
 ## Tagging your source code
