@@ -78,10 +78,10 @@ def extract_sections_and_formulas(tex_soup, section_div):
                 else:
                     formula_idx = f"{formula_counter}"
 
-                label = None 
-                if x.find('\\label{') != -1:
+                label = None
+                if x.find("\\label{") != -1:
                     label = x.split("\\label{")[1].split("}")[0]
-                    
+
                 eqs.append(["formula", label, formula_idx, x])
                 formula_counter += 1
                 i += 1
@@ -94,15 +94,14 @@ def extract_sections_and_formulas(tex_soup, section_div):
 
         # Get the raw LaTeX code
         formula_tex = str(eq)
-        
+
         # Try to find label in the equation
         labels = eq.find_all("label")
         if labels:
             label = str(labels[0].string)
 
-        if label is None and formula_tex.find('\\label{') != -1:
+        if label is None and formula_tex.find("\\label{") != -1:
             label = x.split("\\label{")[1].split("}")[0]
-
 
         # Create formula index
         if section_div:
@@ -203,7 +202,7 @@ def extract_formulas_soup(gp_dir, tex_file, tex_files, section_div):
             continue
 
         label, formula_idx, formula_tex = x[1:]
-        print(formula_idx, '\t\t', label)
+        print(formula_idx, "\t\t", label)
         formulas[formula_idx] = {
             "label": label,
             "index": formula_idx,
@@ -334,12 +333,15 @@ def run():
     # Get all code tags
     tags = find_code_tags(code_path)
 
-    print("\nProcessing code...")
+    def perc(v, tot=len(tags)):
+        return int(100 * v / tot)
+
+    print("Processing code...")
 
     outdated = []
     missing = []
     unrecognized = []
-    
+
     implemented_versions = {}
 
     for t in tags:
@@ -347,7 +349,7 @@ def run():
 
         if version != latest:
             outdated.append(t)
-            
+
         if version not in implemented_versions:
             implemented_versions[version] = 0
         implemented_versions[version] += 1
@@ -355,7 +357,7 @@ def run():
         matches = list(filter(lambda x: x["index"] == index, db[version]))
         if len(matches) == 0:
             unrecognized.append(t)
-            
+
     version = max(implemented_versions, key=implemented_versions.get)
 
     # Check for missing tags
@@ -368,43 +370,59 @@ def run():
         print("Your code is up to date")
         return
 
+    print(
+        f"\nYour codebase has {len(tags)} formula tags, latest version is {latest}, you are implementing {version}"
+    )
+
     outdated.sort(key=lambda x: x[3])
     unrecognized.sort(key=lambda x: x[3])
 
-    print()
-    print(f"There are {len(missing)} missing definitions:")
-    for t in missing:
-        print("\t", t["index"], t["label"])
+    print(
+        f"\nThere are {len(missing)} ({perc(len(missing), len(db[latest]))}%) missing definitions:",
+        ", ".join(map(lambda t: f"{t['index']}", missing)),
+    )
 
-    print()
-    print(f"There are {len(outdated)} outdated tags (latest is: {latest})")
+    print(
+        f"\nThere are {len(outdated)} outdated tags ({perc(len(outdated))}%, latest is: {latest})"
+    )
+    outdated = sorted(outdated, key=lambda x: f"{x[0]}{x[1]}")
     for t in outdated:
         (file, line, version, index) = t
-        
-        t+= ('outdated version',)
-        
-        matches = list(filter(lambda x: x['index'] == index, db[version]))
-        if len(matches) > 0 and matches[0]['label'] is not None:
-            label = matches[0]['label']
-            matches_latest = list(filter(lambda x: x['label'] == label, db[latest]))
+
+        sout = f"  {file}:{line}, Current version: {version}, Reason: Outdated"
+
+        matches = list(filter(lambda x: x["index"] == index, db[version]))
+        if len(matches) > 0 and matches[0]["label"] is not None:
+            label = matches[0]["label"]
+            matches_latest = list(filter(lambda x: x["label"] == label, db[latest]))
             if len(matches_latest) > 0:
-                if index != matches_latest[0]['index']:
-                    t += (f"{label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}", )
-                if matches_latest[0]['tex'] != matches[0]['tex']:
-                    t += (f'Equation content changed between versions',)
-        
-        print("\t", t)
+                if index != matches_latest[0]["index"]:
+                    sout += f", {label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
+                if matches_latest[0]["tex"] != matches[0]["tex"]:
+                    sout += ", Equation content changed between versions"
 
-    print()
-    print(f"There are {len(unrecognized)} unrecognized tags:")
-    for t in unrecognized:
-        (file, line, version, index) = t
-        print("\t", t)
+        print(sout)
 
-    print()
-    print(f'The majority of equations implements version {version}; this is the version distribution:')
-    print('\n'.join(map(lambda x: f'\t{x[0]}: {x[1]}', implemented_versions.items())))
-    print()
+    if len(unrecognized) > 0:
+        print(
+            f"\nThere are {len(unrecognized)} unrecognized tags ({perc(len(unrecognized))}%):"
+        )
+        for t in unrecognized:
+            (file, line, version, index) = t
+            print("\t", t)
+
+    print(
+        f"\nThe majority of equations implements version {version}; this is the version distribution:"
+    )
+    print(
+        "\n".join(
+            map(
+                lambda x: f"  - {x[0]}: {x[1]} ({perc(x[1])}%)",
+                implemented_versions.items(),
+            )
+        )
+    )
+
 
 if __name__ == "__main__":
     run()
