@@ -361,7 +361,7 @@ def run():
     version = max(implemented_versions, key=implemented_versions.get)
 
     # Check for missing tags
-    for t in db[version]:
+    for t in db[latest]:
         matches = list(filter(lambda x: t["index"] == x[3], tags))
         if len(matches) == 0:
             missing.append(t)
