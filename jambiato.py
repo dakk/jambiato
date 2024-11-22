@@ -389,7 +389,7 @@ def run():
     for t in outdated:
         (file, line, version, index) = t
 
-        sout = f"  {file}:{line}, Current version: {version}, Reason: Outdated"
+        sout = f"  {file}:{line}, Ref: {version} - {index}, Reason: Outdated"
 
         matches = list(filter(lambda x: x["index"] == index, db[version]))
         if len(matches) > 0 and matches[0]["label"] is not None:
