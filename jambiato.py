@@ -385,11 +385,11 @@ def run():
     print(
         f"\nThere are {len(outdated)} outdated tags ({perc(len(outdated))}%, latest is: {latest})"
     )
-    outdated = sorted(outdated, key=lambda x: f"{x[0]}{x[1]}")
+    outdated = sorted(outdated, key=lambda x: x[2]) # Sort by formula index # f"{x[0]}{x[1]}")
     for t in outdated:
         (file, line, version, index) = t
 
-        sout = f"  {file}:{line}, Ref: {version} - {index}, Reason: Outdated"
+        sout = f"  {file+':'+str(line): <55}{version + '-' + index: <16}{'Outdated':<20}"
 
         # Check for label matches
         matches = list(filter(lambda x: x["index"] == index, db[version]))
@@ -400,7 +400,7 @@ def run():
             if len(matches_latest) > 0:
                 label_match = True
                 if index != matches_latest[0]["index"]:
-                    sout += f", {label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
+                    sout += f"{label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
                 if matches_latest[0]["tex"] != matches[0]["tex"]:
                     sout += " (content not equal between versions)"
                     
@@ -409,7 +409,7 @@ def run():
             matches_latest = list(filter(lambda x: x['tex'] == matches[0]['tex'], db[latest]))
             if len(matches_latest) > 0:
                 if index != matches_latest[0]["index"]:
-                    sout += f", {index} in {version} => may became {matches_latest[0]['index']} in {latest} (content match)"
+                    sout += f"{index} in {version} => may became {matches_latest[0]['index']} in {latest} (content match)"
                 
 
         print(sout)
