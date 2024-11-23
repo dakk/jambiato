@@ -385,11 +385,11 @@ def run():
     print(
         f"\nThere are {len(outdated)} outdated tags ({perc(len(outdated))}%, latest is: {latest})"
     )
-    outdated = sorted(outdated, key=lambda x: x[2]) # Sort by formula index # f"{x[0]}{x[1]}")
+    outdated = sorted(outdated, key=lambda x: int(x[3])) # Sort by formula index # f"{x[0]}{x[1]}")
     for t in outdated:
         (file, line, version, index) = t
 
-        sout = f"  {file+':'+str(line): <55}{version + '-' + index: <16}{'Outdated':<20}"
+        sout = f"  {file+':'+str(line): <55}{version + ' - ' + index: <16}{'Outdated':<20}"
 
         # Check for label matches
         matches = list(filter(lambda x: x["index"] == index, db[version]))
