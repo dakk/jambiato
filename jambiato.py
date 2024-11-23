@@ -358,7 +358,7 @@ def run():
         if len(matches) == 0:
             unrecognized.append(t)
 
-    version = max(implemented_versions, key=implemented_versions.get)
+    used_version = max(implemented_versions, key=implemented_versions.get)
 
     # Check for missing tags
     for t in db[latest]:
@@ -371,7 +371,7 @@ def run():
         return
 
     print(
-        f"\nYour codebase has {len(tags)} formula tags, latest version is {latest}, you are implementing {version}"
+        f"\nYour codebase has {len(tags)} formula tags, latest version is {latest}, you are implementing {used_version}"
     )
 
     outdated.sort(key=lambda x: x[3])
@@ -385,15 +385,19 @@ def run():
     print(
         f"\nThere are {len(outdated)} outdated tags ({perc(len(outdated))}%, latest is: {latest})"
     )
-    outdated = sorted(outdated, key=lambda x: int(x[3])) # Sort by formula index # f"{x[0]}{x[1]}")
+    outdated = sorted(
+        outdated, key=lambda x: int(x[3])
+    )  # Sort by formula index # f"{x[0]}{x[1]}")
     for t in outdated:
         (file, line, version, index) = t
 
-        sout = f"  {file+':'+str(line): <55}{version + ' - ' + index: <16}{'Outdated':<20}"
+        sout = (
+            f"  {file+':'+str(line): <55}{version + ' - ' + index: <16}{'Outdated':<20}"
+        )
 
         # Check for label matches
         matches = list(filter(lambda x: x["index"] == index, db[version]))
-        label_match = False 
+        label_match = False
         if len(matches) > 0 and matches[0]["label"] is not None:
             label = matches[0]["label"]
             matches_latest = list(filter(lambda x: x["label"] == label, db[latest]))
@@ -403,14 +407,15 @@ def run():
                     sout += f"{label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
                 if matches_latest[0]["tex"] != matches[0]["tex"]:
                     sout += " (content not equal between versions)"
-                    
+
         # Check for content matches
         if not label_match and len(matches) > 0:
-            matches_latest = list(filter(lambda x: x['tex'] == matches[0]['tex'], db[latest]))
+            matches_latest = list(
+                filter(lambda x: x["tex"] == matches[0]["tex"], db[latest])
+            )
             if len(matches_latest) > 0:
                 if index != matches_latest[0]["index"]:
                     sout += f"{index} in {version} => may became {matches_latest[0]['index']} in {latest} (content match)"
-                
 
         print(sout)
 
@@ -423,7 +428,7 @@ def run():
             print("\t", t)
 
     print(
-        f"\nThe majority of equations implements version {version}; this is the version distribution:"
+        f"\nThe majority of equations implements version {used_version}; this is the version distribution:"
     )
     print(
         "\n".join(
