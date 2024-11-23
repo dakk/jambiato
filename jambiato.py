@@ -391,15 +391,26 @@ def run():
 
         sout = f"  {file}:{line}, Ref: {version} - {index}, Reason: Outdated"
 
+        # Check for label matches
         matches = list(filter(lambda x: x["index"] == index, db[version]))
+        label_match = False 
         if len(matches) > 0 and matches[0]["label"] is not None:
             label = matches[0]["label"]
             matches_latest = list(filter(lambda x: x["label"] == label, db[latest]))
             if len(matches_latest) > 0:
+                label_match = True
                 if index != matches_latest[0]["index"]:
                     sout += f", {label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
                 if matches_latest[0]["tex"] != matches[0]["tex"]:
-                    sout += ", Equation content changed between versions"
+                    sout += " (content not equal between versions)"
+                    
+        # Check for content matches
+        if not label_match and len(matches) > 0:
+            matches_latest = list(filter(lambda x: x['tex'] == matches[0]['tex'], db[latest]))
+            if len(matches_latest) > 0:
+                if index != matches_latest[0]["index"]:
+                    sout += f", {index} in {version} => may became {matches_latest[0]['index']} in {latest} (content match)"
+                
 
         print(sout)
 
