@@ -386,7 +386,7 @@ def run():
         f"\nThere are {len(outdated)} outdated tags ({perc(len(outdated))}%, latest is: {latest})"
     )
     outdated = sorted(
-        outdated, key=lambda x: int(x[3])
+        outdated, key=lambda x: str(x[3])
     )  # Sort by formula index # f"{x[0]}{x[1]}")
     for t in outdated:
         (file, line, version, index) = t
@@ -403,10 +403,16 @@ def run():
             matches_latest = list(filter(lambda x: x["label"] == label, db[latest]))
             if len(matches_latest) > 0:
                 label_match = True
+                becomes = False
                 if index != matches_latest[0]["index"]:
                     sout += f"{label}: {index} in {version} => becomes {matches_latest[0]['index']} in {latest}"
+                    becomes = True 
                 if matches_latest[0]["tex"] != matches[0]["tex"]:
-                    sout += " (content not equal between versions)"
+                    if becomes:
+                        sout += " ("
+                    sout += "Content not equal between versions"
+                    if becomes:
+                        sout += ")"
 
         # Check for content matches
         if not label_match and len(matches) > 0:
