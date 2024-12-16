@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import re
 import os
 import sys
 import shutil
-import subprocess
 import requests
 import tarfile
 import json
@@ -318,20 +318,23 @@ def find_code_tags(directory):
 
 
 def run():
-    if len(sys.argv) < 2:
-        print("usage: python jambiato.py /path/to/your/code")
-        return
-
-    code_path = sys.argv[1]
+    parser = argparse.ArgumentParser(prog='Jambiato', description='Checker for tracking graypaper equations\' modifications ')
+    parser.add_argument('code_path') 
+    parser.add_argument('-nu', '--no-update', action="store_true",default=False,)
+    args = parser.parse_args()
 
     # Fetch releases
-    latest = download_releases(META_DIR)
+    if args.no_update:
+        latest = os.listdir(META_DIR)[0][1:-5]
+        print(latest)
+    else:
+        latest = download_releases(META_DIR)
 
     # Create version db
     db = create_db(META_DIR)
 
     # Get all code tags
-    tags = find_code_tags(code_path)
+    tags = find_code_tags(args.code_path)
 
     def perc(v, tot=len(tags)):
         return int(100 * v / tot)
