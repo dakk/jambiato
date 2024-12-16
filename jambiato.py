@@ -325,8 +325,7 @@ def run():
 
     # Fetch releases
     if args.no_update:
-        latest = os.listdir(META_DIR)[0][1:-5]
-        print(latest)
+        latest = sorted(os.listdir(META_DIR))[-1][1:-5]
     else:
         latest = download_releases(META_DIR)
 
