@@ -301,7 +301,10 @@ def find_code_tags(directory):
                         for match in re.finditer(r"\$\((.*?)\)", line):
                             full_match = match.group(1)
 
-                            version, index = full_match.split("-")
+                            try:
+                                version, index = full_match.split("-")
+                            except:
+                                raise Exception(f"invalid string: {full_match}")
                             version = version.strip()
                             index = index.strip()
                             indexes = index.split("/")
