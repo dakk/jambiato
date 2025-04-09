@@ -62,6 +62,7 @@ def extract_sections_and_formulas(tex_soup, section_div):
                     (x.count("\\begin{cases}") != x.count("\\end{cases}"))
                     or (x.count("\\begin{rcases}") != x.count("\\end{rcases}"))
                     or (x.count("\\begin{aligned}") != x.count("\\end{aligned}"))
+                    or (x.count("\\begin{alignedat}") != x.count("\\end{alignedat}"))
                     or (x.count("\\begin{align*}") != x.count("\\end{align*}"))
                 ):
                     i += 1
