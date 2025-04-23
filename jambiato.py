@@ -231,6 +231,9 @@ def download_releases(local_dir):
     response = requests.get(api_url)
     releases = response.json()
 
+    if 'message' in releases:
+        raise Exception(releases['message'])
+    
     for release in releases:
         if release["tag_name"] == f"v{MIN_VER}":
             break
