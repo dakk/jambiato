@@ -292,14 +292,25 @@ def create_db(meta_dir):
     return db
 
 
-def find_code_tags(directory):
+def find_code_tags(directory, extensions):
     matches = []
+    ext_arr = None
+
+    if extensions != '':
+        ext_arr = extensions.split(',')
 
     for root, dirs, files in os.walk(directory):
         for file in files:
             file_path = os.path.join(root, file)
+
+            if ext_arr is not None:
+                if file_path.split('.')[-1] not in ext_arr:
+                    print(f"Skipping file {file_path}.")
+                    continue
+
             try:
                 with open(file_path, "r") as f:
+                    print(f"Processing {file_path}...")
                     content = f.read()
                     for line_num, line in enumerate(content.splitlines(), start=1):
                         for match in re.finditer(r"\$\((.*?)\)", line):
@@ -328,6 +339,12 @@ def run():
     parser = argparse.ArgumentParser(prog='Jambiato', description='Checker for tracking graypaper equations\' modifications ')
     parser.add_argument('code_path') 
     parser.add_argument('-nu', '--no-update', action="store_true",default=False,)
+    parser.add_argument(
+        "-e", "--extensions",
+        type=str,
+        default="",
+        help="file extensions of the code, comma separated (for instance: 'py,pyx')",
+    )
     args = parser.parse_args()
 
     # Fetch releases
@@ -340,7 +357,7 @@ def run():
     db = create_db(META_DIR)
 
     # Get all code tags
-    tags = find_code_tags(args.code_path)
+    tags = find_code_tags(args.code_path, args.extensions)
 
     def perc(v, tot=len(tags)):
         return int(100 * v / tot)
@@ -362,6 +379,10 @@ def run():
         if version not in implemented_versions:
             implemented_versions[version] = 0
         implemented_versions[version] += 1
+
+        if version not in db:
+            print(f"ERROR: unrecognied version {version} in {t[0]}:{t[1]}")
+            return
 
         matches = list(filter(lambda x: x["index"] == index, db[version]))
         if len(matches) == 0:

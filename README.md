@@ -24,6 +24,21 @@ If a block of code implements multiple equations, use \ separators:
 python jambiato.py YOUR_SOURCE_DIRECTORY
 ```
 
+```
+usage: Jambiato [-h] [-nu] [-e EXTENSIONS] code_path
+
+Checker for tracking graypaper equations' modifications
+
+positional arguments:
+  code_path
+
+options:
+  -h, --help            show this help message and exit
+  -nu, --no-update
+  -e, --extensions EXTENSIONS
+                        file extensions of the code, comma separated (for instance: 'py,pyx')
+```
+
 
 ## License
 
