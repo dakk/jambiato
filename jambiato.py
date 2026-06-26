@@ -43,10 +43,27 @@ def extract_sections_and_formulas(tex_soup, section_div):
             return ascii_uppercase[counter - 1]
         return str(counter)
 
+    def count_open_braces(s):
+        """Count unmatched open braces, skipping escaped chars."""
+        count = 0
+        i = 0
+        while i < len(s):
+            if s[i] == "\\":
+                i += 2
+            elif s[i] == "{":
+                count += 1
+                i += 1
+            elif s[i] == "}":
+                count -= 1
+                i += 1
+            else:
+                i += 1
+        return count
+
     def process_equation(eq, section_num) -> List:
         nonlocal formula_counter
 
-        if str(eq.name) == "align" and len(str(eq).split("\\\\")) > 1:
+        if str(eq.name) in ["align", "gather"] and len(str(eq).split("\\\\")) > 1:
             eqs = []
             i = 0
             data = str(eq).split("\\\\")
@@ -64,9 +81,11 @@ def extract_sections_and_formulas(tex_soup, section_div):
                     or (x.count("\\begin{aligned}") != x.count("\\end{aligned}"))
                     or (x.count("\\begin{alignedat}") != x.count("\\end{alignedat}"))
                     or (x.count("\\begin{align*}") != x.count("\\end{align*}"))
+                    or (count_open_braces(x) != 0)
                 ):
                     i += 1
-                    x += data[i]
+                    if i < len(data):
+                        x += data[i]
                     continue
 
                 if (i + 1) < len(data) and data[i + 1].find("\\nonumber") != -1:
